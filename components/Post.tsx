@@ -11,7 +11,6 @@ import {
   Image,
   StyleSheet,
   Dimensions,
-  TextInput,
 } from "react-native";
 
 //@ts-ignore
@@ -28,6 +27,7 @@ const Post = (props) => {
       category: props.category,
       post: props.post,
       id: props.id,
+      currentUser: props.currentUser,
     });
   };
 
@@ -37,9 +37,19 @@ const Post = (props) => {
   };
 
   const like = () => {
-    console.log(props.likes);
-    return db
-      .collection("posts")
+    console.log(props);
+    // db.collection("users")
+    //   .where("Email", "==", firebase.auth().currentUser?.email)
+    //   .get()
+    //   .then((querySnapshot) => {
+    //     querySnapshot.forEach((doc) => {
+    //       console.log(doc.id, " => ", doc.data());
+    //     });
+    //   })
+    //   .catch(function (error) {
+    //     console.log("Error getting documents: ", error);
+    //   });
+    db.collection("posts")
       .doc(props.id)
       .update({ Likes: firebase.firestore.FieldValue.increment(1) });
   };
@@ -51,10 +61,12 @@ const Post = (props) => {
 
   const category = () => {
     console.log(props.category);
+    navigation.navigate("CategoryScreen", { category: props.category });
   };
 
   const user = () => {
-    console.log(props.poster);
+    console.log("the poster is " + props.poster);
+    navigation.navigate("Profile", { user: props.poster });
   };
 
   return (

@@ -9,32 +9,34 @@ import {
 } from "react-native";
 
 import * as firebase from "firebase";
+import { useNavigation } from "@react-navigation/native";
 
 //@ts-ignore
-const Messages = (props) => {
+const Comment = (props) => {
   var db = firebase.firestore();
+  const navigation = useNavigation();
 
   const reply = () => {
-    console.log("reply");
+    console.log(props);
   };
 
   const like = () => {
-    console.log("like");
-    db.collection("posts")
-      .doc(props.postId)
-      .collection("comments")
+    props.changeReplyingTo();
+    console.log(props);
+    db.collection("comments")
       .doc(props.id)
       .update({ Likes: firebase.firestore.FieldValue.increment(1) });
   };
 
   const profile = () => {
-    console.log("profile");
+    console.log(props.poster);
+    navigation.navigate("Profile", { user: props.poster });
   };
 
   return (
     <View style={{ marginLeft: 15 }}>
       <TouchableWithoutFeedback onPress={() => profile()}>
-        <Text>Gang Member • 2h</Text>
+        <Text>{props.poster} • 2h</Text>
       </TouchableWithoutFeedback>
       <Text style={{ marginTop: 8 }}>{props.passedComment}</Text>
       <View style={{ flexDirection: "row", marginTop: 10 }}>
@@ -44,10 +46,11 @@ const Messages = (props) => {
             style={{ height: 20, width: 20 }}
           />
         </TouchableOpacity>
+
         <Text style={{ marginLeft: 5, marginRight: 5, marginTop: 3 }}>
           {props.likes}
         </Text>
-        <TouchableWithoutFeedback onPress={() => reply()}>
+        <TouchableOpacity onPress={() => reply()}>
           <View style={{ flexDirection: "row", marginBottom: 12 }}>
             <Image
               source={require("./icons/reply-solid.png")}
@@ -55,10 +58,10 @@ const Messages = (props) => {
             />
             <Text style={{ marginLeft: 10, marginTop: 2 }}>Reply</Text>
           </View>
-        </TouchableWithoutFeedback>
+        </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-export default Messages;
+export default Comment;

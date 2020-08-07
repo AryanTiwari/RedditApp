@@ -3,7 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 
 import Home from "./components/Home";
-import Messages from "./components/Messages";
+import Comment from "./components/Comment";
 import Profile from "./components/Profile";
 import PostText from "./components/PostText";
 import PostImage from "./components/PostImage";
@@ -12,6 +12,9 @@ import CategorySelect from "./components/CategorySelect";
 import StartScreen from "./components/StartScreen";
 import Login from "./components/Login";
 import SignUp from "./components/SignUp";
+import Messaging from "./components/Messaging";
+import CategoryScreen from "./components/CategoryScreen";
+import LoadingScreen from "./components/LoadingScreen";
 
 import { useNavigation } from "@react-navigation/native";
 
@@ -45,18 +48,48 @@ firebase.initializeApp(firebaseConfig);
 
 const MainStackScreen = () => {
   const navigation = useNavigation();
-  var db = firebase.firestore();
+  const [userSignedIn, setUserSignedIn] = React.useState<boolean | null>(null);
+
+  firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+      // User is signed in.
+      setUserSignedIn(true);
+    } else {
+      // No user is signed in.
+      setUserSignedIn(false);
+    }
+  });
+
   return (
     <MainStack.Navigator>
-      <MainStack.Screen name="StartScreen" component={StartScreen} />
-      <MainStack.Screen name="Login" component={Login} />
-      <MainStack.Screen name="SignUp" component={SignUp} />
-      <MainStack.Screen name="Home" component={Home} />
-      <MainStack.Screen name="Profile" component={Profile} />
-      <MainStack.Screen name="Messages" component={Messages} />
-      <MainStack.Screen name="PostText" component={PostText} />
-      <MainStack.Screen name="PostImage" component={PostImage} />
-      <MainStack.Screen name="PostScreen" component={PostScreen} />
+      {userSignedIn === null ? (
+        <MainStack.Screen name="LoadingScreen" component={LoadingScreen} />
+      ) : userSignedIn === true ? (
+        // User is signed in
+        <>
+          <MainStack.Screen
+            name="Home"
+            component={Home}
+            options={{
+              animationEnabled: false,
+            }}
+          />
+          <MainStack.Screen name="Profile" component={Profile} />
+          <MainStack.Screen name="Commment" component={Comment} />
+          <MainStack.Screen name="PostText" component={PostText} />
+          <MainStack.Screen name="PostImage" component={PostImage} />
+          <MainStack.Screen name="PostScreen" component={PostScreen} />
+          <MainStack.Screen name="Messaging" component={Messaging} />
+          <MainStack.Screen name="CategoryScreen" component={CategoryScreen} />
+        </>
+      ) : (
+        // No token found, user isn't signed in
+        <>
+          <MainStack.Screen name="StartScreen" component={StartScreen} />
+          <MainStack.Screen name="Login" component={Login} />
+          <MainStack.Screen name="SignUp" component={SignUp} />
+        </>
+      )}
     </MainStack.Navigator>
   );
 };

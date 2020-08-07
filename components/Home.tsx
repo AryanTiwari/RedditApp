@@ -18,19 +18,23 @@ import Post from "./Post";
 const Home = () => {
   const navigation = useNavigation();
   const [bounceValue] = useState(new Animated.Value(330));
-  const [Data, setData] = useState([{}]);
+  const [Data, setData] = useState<Array<any>>([]);
+  const [currentUser, setCurrentUser] = useState("");
 
   var db = firebase.firestore();
   var isHidden = true;
   var isFetching = false;
-
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
         <TouchableOpacity
           style={{ margin: 20 }}
-          // CHANGE THIS BACK TO PROFILE
-          onPress={() => navigation.navigate("StartScreen")}
+          onPress={() =>
+            navigation.navigate("Profile", {
+              user: currentUser,
+              retriveData: getData(),
+            })
+          }
         >
           <Image
             style={{ height: 25, width: 25 }}
@@ -42,7 +46,23 @@ const Home = () => {
   });
 
   //@ts-ignore
-  const DATA = [{}];
+  const DATA: any = [];
+
+  const getCurrentUser = () => {
+    db.collection("users")
+      .where("Email", "==", firebase.auth().currentUser?.email)
+      .get()
+      .then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          let data = doc.data();
+          if (data !== undefined && doc !== undefined) {
+            setCurrentUser(data.Username);
+          } else {
+            console.log("No such document!");
+          }
+        });
+      });
+  };
 
   const getData = () => {
     db.collection("posts").onSnapshot((querySnapshot) => {
@@ -50,26 +70,18 @@ const Home = () => {
         //@ts-ignore
         if (!DATA.some((post) => post.id === doc.id)) {
           DATA.push({
+            data: doc.data(),
             id: doc.id,
-            post: (
-              <Post
-                title={doc.data().Title}
-                category={doc.data().Category}
-                poster={doc.data().Poster}
-                likes={doc.data().Likes}
-                comments={doc.data().Comments}
-                post={doc.data().Post}
-                id={doc.id}
-              />
-            ),
           });
         }
       });
       setData(DATA);
     });
   };
+
   useEffect(() => {
     getData();
+    getCurrentUser();
   }, []);
 
   const _toggleSubview = () => {
@@ -96,7 +108,18 @@ const Home = () => {
         //@ts-ignore
         data={Data}
         //@ts-ignore
-        renderItem={({ item }) => item.post}
+        renderItem={({ item }) => (
+          <Post
+            title={item.data.Title}
+            category={item.data.Category}
+            poster={item.data.Poster}
+            likes={item.data.Likes}
+            comments={item.data.Comments}
+            post={item.data.Post}
+            id={item.id}
+            currentUser={currentUser}
+          />
+        )}
         onRefresh={() => getData()}
         refreshing={isFetching}
         //@ts-ignore
@@ -118,7 +141,7 @@ const Home = () => {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate("Messages")}>
+        <TouchableOpacity onPress={() => navigation.navigate("Messaging")}>
           <Image
             style={styles.button}
             source={require("./icons/envelope-solid.png")}
@@ -132,25 +155,8 @@ const Home = () => {
             { transform: [{ translateY: bounceValue }] },
           ]}
         >
-          <Text
-            style={{
-              textAlign: "center",
-              marginBottom: 20,
-              marginTop: 8,
-              color: "white",
-            }}
-          >
-            Post to RedditApp
-          </Text>
-          <View
-            style={{
-              borderTopColor: "#DDDDDD",
-              flexDirection: "row",
-              justifyContent: "center",
-              alignItems: "center",
-              width: 415,
-            }}
-          >
+          <Text style={styles.postBoxTitle}>Post to RedditApp</Text>
+          <View style={styles.postBox}>
             <TouchableOpacity
               onPress={() => {
                 _toggleSubview();
@@ -158,12 +164,7 @@ const Home = () => {
               }}
             >
               <Image
-                style={{
-                  height: 35,
-                  width: 25,
-                  marginRight: 30,
-                  marginBottom: 10,
-                }}
+                style={styles.fileIcon}
                 source={require("./icons/file-image-regular.png")}
               />
             </TouchableOpacity>
@@ -174,12 +175,7 @@ const Home = () => {
               }}
             >
               <Image
-                style={{
-                  height: 35,
-                  width: 30,
-                  marginLeft: 25,
-                  marginBottom: 10,
-                }}
+                style={styles.textIcon}
                 source={require("./icons/font-solid.png")}
               />
             </TouchableOpacity>
@@ -202,7 +198,7 @@ const Home = () => {
             style={styles.postDrawer}
           >
             <Image
-              style={{ height: 15, width: 15, tintColor: "white" }}
+              style={styles.closeIcon}
               source={require("./icons/times-solid.png")}
             />
           </TouchableOpacity>
@@ -242,7 +238,7 @@ var styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: 415,
-    marginBottom: 30,
+    marginBottom: 40,
   },
   postDrawer: {
     justifyContent: "center",
@@ -253,6 +249,36 @@ var styles = StyleSheet.create({
     marginRight: 25,
     marginLeft: 20,
     marginBottom: 10,
+  },
+  postBox: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 415,
+  },
+  fileIcon: {
+    height: 40,
+    width: 30,
+    marginRight: 30,
+    marginBottom: 10,
+  },
+  textIcon: {
+    height: 40,
+    width: 35,
+    marginLeft: 25,
+    marginBottom: 10,
+  },
+  postBoxTitle: {
+    textAlign: "center",
+    marginBottom: 20,
+    marginTop: 8,
+    color: "white",
+    fontSize: 15,
+  },
+  closeIcon: {
+    height: 20,
+    width: 20,
+    tintColor: "white",
   },
 });
 

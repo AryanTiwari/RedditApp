@@ -6,6 +6,7 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  View,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
@@ -43,6 +44,7 @@ const CategorySelect = () => {
 
   return (
     <SafeAreaView style={{ backgroundColor: "white", flex: 1 }}>
+      <View style={{ marginBottom: 15 }} />
       <FlatList
         data={DATA}
         renderItem={({ item }) => (
@@ -53,7 +55,7 @@ const CategorySelect = () => {
               select();
             }}
           >
-            <Text style={{ color: "white" }}>{item.title}</Text>
+            <Text style={{ color: "white", fontSize: 15 }}>{item.title}</Text>
           </TouchableOpacity>
         )}
         keyExtractor={(item) => item.id}
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   item: {
-    width: 80,
+    width: 100,
     height: 20,
     justifyContent: "center",
     borderRadius: 10,

@@ -17,9 +17,14 @@ const PostText = ({ route }) => {
   const [title, setTitle] = useState("");
   const [post, setPost] = useState("");
 
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: "Post Text",
+    });
+  });
+
   var category = "Choose Category";
   try {
-    console.log(route.params.data);
     category = route.params.data;
   } catch (err) {
     console.log(err);
@@ -30,15 +35,38 @@ const PostText = ({ route }) => {
 
   const submitPost = () => {
     if (category !== "Choose Category" && title !== "" && post !== "") {
-      db.collection("posts").doc().set({
-        Category: category,
-        Comments: 0,
-        Likes: 0,
-        Post: post,
-        Title: title,
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user != null && user.email != null) {
+          db.collection("users")
+            .where("Email", "==", user.email)
+            .get()
+            .then((querySnapshot) => {
+              querySnapshot.forEach((doc) => {
+                let data = doc.data();
+                if (data !== undefined && doc !== undefined) {
+                  db.collection("posts").doc().set({
+                    Category: category,
+                    Comments: 0,
+                    Likes: 0,
+                    Post: post,
+                    Title: title,
+                    Poster: data.Username,
+                  });
+                } else {
+                  console.log("No such document!");
+                }
+              });
+            })
+            .catch(function (error) {
+              console.log("Error getting documents: ", error);
+            });
+        } else {
+          console.log("not logged in");
+        }
       });
       navigation.navigate("Home");
     } else {
+      console.log("error");
     }
   };
 
@@ -126,7 +154,7 @@ var styles = StyleSheet.create({
     width: 300,
     marginTop: 30,
     justifyContent: "center",
-    borderRadius: 10,
+    borderRadius: 20,
     borderColor: "gray",
   },
 });

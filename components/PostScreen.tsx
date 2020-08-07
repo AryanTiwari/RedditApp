@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 
 import {
   Text,
-  SafeAreaView,
   View,
   TouchableOpacity,
   Image,
@@ -10,18 +9,22 @@ import {
   Dimensions,
   TextInput,
   FlatList,
+  Keyboard,
+  Animated,
 } from "react-native";
 import * as firebase from "firebase";
 import { useNavigation } from "@react-navigation/native";
-import Messages from "./Messages";
+import Comment from "./Comment";
 
 //@ts-ignore
 const PostScreen = ({ route }) => {
   var db = firebase.firestore();
   const navigation = useNavigation();
-  const [data, setData] = useState([{}]);
+  const [data, setData] = useState<Array<any>>([]);
+  const [commentData, setCommentData] = useState("");
+  const [keyboardHeight] = useState(new Animated.Value(0));
+  const [commenting, setCommenting] = useState(route.params.title);
 
-  var comment = "";
   var isFetching = false;
 
   React.useLayoutEffect(() => {
@@ -41,10 +44,11 @@ const PostScreen = ({ route }) => {
     });
   });
 
+  const DATA: any = [];
+
   const like = () => {
     console.log(route.params.likes);
-    return db
-      .collection("posts")
+    db.collection("posts")
       .doc(route.params.id)
       .update({ Likes: firebase.firestore.FieldValue.increment(1) });
   };
@@ -62,45 +66,74 @@ const PostScreen = ({ route }) => {
   };
 
   const postComment = () => {
-    db.collection("posts").doc(route.params.id).collection("Comments").add({
-      Comment: comment,
+    db.collection("comments").doc().set({
+      Comment: commentData,
       Likes: 0,
+      Poster: route.params.currentUser,
+      Post: route.params.id,
     });
+    setCommentData("");
     getData();
   };
 
-  const DATA = [{}];
-
   const getData = () => {
-    db.collection("posts")
-      .doc(route.params.id)
-      .collection("Comments")
-      .onSnapshot((querySnapshot) => {
+    db.collection("comments")
+      .where("Post", "==", route.params.id)
+      .get()
+      .then((querySnapshot) => {
         querySnapshot.forEach((doc) => {
           //@ts-ignore
           if (!DATA.some((comment) => comment.id === doc.id)) {
             DATA.push({
+              data: doc.data(),
               id: doc.id,
-              comment: (
-                <Messages
-                  passedComment={doc.data().Comment}
-                  likes={doc.data().Likes}
-                  id={doc.id}
-                  postId={route.params.id}
-                />
-              ),
             });
           }
         });
+        setData(DATA);
       });
-    setData(DATA);
   };
+
+  //@ts-ignore
+  const changeReplyingTo = () => {
+    console.log("asdasdasd");
+  };
+
   useEffect(() => {
     getData();
+    Keyboard.addListener("keyboardDidShow", _keyboardDidShow);
+    Keyboard.addListener("keyboardDidHide", _keyboardDidHide);
+
+    return () => {
+      Keyboard.removeListener("keyboardDidShow", _keyboardDidShow);
+      Keyboard.removeListener("keyboardDidHide", _keyboardDidHide);
+    };
   }, []);
 
+  //@ts-ignore
+  const _keyboardDidShow = (event) => {
+    Animated.parallel([
+      Animated.timing(keyboardHeight, {
+        duration: event.duration,
+        toValue: event.endCoordinates.height,
+      }),
+    ]).start();
+  };
+
+  //@ts-ignore
+  const _keyboardDidHide = (event) => {
+    Animated.parallel([
+      Animated.timing(keyboardHeight, {
+        duration: event.duration,
+        toValue: 0,
+      }),
+    ]).start();
+  };
+
+  var commentingOn = <Text>Commenting on {commenting}</Text>;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
+    <View style={{ flex: 1, backgroundColor: "white" }}>
       <View style={{ width: Dimensions.get("window").width }}>
         <View>
           <View style={styles.topRow}>
@@ -148,24 +181,40 @@ const PostScreen = ({ route }) => {
         onRefresh={() => getData()}
         refreshing={isFetching}
         //@ts-ignore
-        renderItem={({ item }) => item.comment}
+        renderItem={({ item }) => (
+          <Comment
+            passedComment={item.data.Comment}
+            likes={item.data.Likes}
+            id={item.id}
+            postId={route.params.id}
+            poster={item.data.Poster}
+            replyingTo={commenting}
+            changeReplyingTo={changeReplyingTo}
+          />
+        )}
         //@ts-ignore
         keyExtractor={(item) => item.id}
       />
-      <View style={{ flexDirection: "row" }}>
+
+      <Text>{commentingOn}</Text>
+      <Animated.View
+        style={[styles.commentBox, { paddingBottom: keyboardHeight }]}
+      >
         <TextInput
-          onChangeText={(text) => (comment = text)}
+          onChangeText={(text) => setCommentData(text)}
+          value={commentData}
           placeholder="Comment"
-          style={styles.commentBox}
+          style={styles.inputBox}
+          onSubmitEditing={Keyboard.dismiss}
         />
         <TouchableOpacity onPress={() => postComment()}>
           <Image
-            style={{ height: 20, width: 20, marginTop: 5 }}
+            style={{ height: 25, width: 25, marginTop: 5 }}
             source={require("./icons/paper-plane-solid.png")}
           />
         </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      </Animated.View>
+    </View>
   );
 };
 
@@ -209,28 +258,17 @@ var styles = StyleSheet.create({
     color: "gray",
     marginLeft: 8,
   },
-  container: {
-    flex: 1,
-    marginTop: 10,
-  },
-  item: {
-    backgroundColor: "#f9c2ff",
-    padding: 20,
-    marginVertical: 8,
-    marginHorizontal: 16,
-  },
-  title: {
-    fontSize: 32,
+  inputBox: {
+    height: 35,
+    width: 340,
+    backgroundColor: "#ECECEC",
+    borderRadius: 20,
+    marginBottom: 10,
+    fontSize: 15,
   },
   commentBox: {
-    height: 30,
-    width: 350,
-    alignSelf: "center",
-    backgroundColor: "#ECECEC",
-    borderRadius: 9,
-    marginLeft: 15,
-    marginRight: 10,
-    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
 });
 
